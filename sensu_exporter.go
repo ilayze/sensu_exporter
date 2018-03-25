@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"crypto/tls"
 	"sync"
 	"time"
 
@@ -12,9 +13,12 @@ import (
 	"github.com/prometheus/common/log"
 )
 
+
+
 var (
+
 	httpClient = &http.Client{
-		Timeout: 3 * time.Second,
+		Timeout: 40 * time.Second,
 	}
 	listenAddress = flag.String(
 		// exporter port list:
@@ -66,9 +70,12 @@ func (c *SensuCollector) Collect(ch chan<- prometheus.Metric) {
 		// in Prometheus, 1 means OK
 		status := 0.0
 		if result.Check.Status == 0 {
+			status = 0.0
+		} else if result.Check.Status == 1{
 			status = 1.0
 		} else {
-			status = 0.0
+			status = 2.0
+
 		}
 		ch <- prometheus.MustNewConstMetric(
 			c.CheckStatus,
@@ -76,7 +83,6 @@ func (c *SensuCollector) Collect(ch chan<- prometheus.Metric) {
 			status,
 			result.Client,
 			result.Check.Name,
-			result.Check.Output,
 		)
 	}
 }
@@ -108,14 +114,14 @@ func NewSensuCollector(url string) *SensuCollector {
 		CheckStatus: prometheus.NewDesc(
 			"sensu_check_status",
 			"Sensu Check Status(1:Up, 0:Down)",
-			[]string{"client", "check_name", "output"},
+			[]string{"client", "check_name"},
 			nil,
 		),
 	}
 }
 
 func main() {
-
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	flag.Parse()
 	serveMetrics()
 

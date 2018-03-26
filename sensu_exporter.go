@@ -69,12 +69,16 @@ func (c *SensuCollector) Collect(ch chan<- prometheus.Metric) {
 		// in Sensu, 0 means OK
 		// in Prometheus, 1 means OK
 		status := 0.0
+		var status_str string = ""
 		if result.Check.Status == 0 {
-			status = 0.0
-		} else if result.Check.Status == 1{
 			status = 1.0
+			status_str = "ok"
+		} else if result.Check.Status == 1{
+			status = 0.0
+			status_str = "warn"
 		} else {
-			status = 2.0
+			status = 0.0
+			status_str = "critical"
 
 		}
 		ch <- prometheus.MustNewConstMetric(
@@ -83,6 +87,7 @@ func (c *SensuCollector) Collect(ch chan<- prometheus.Metric) {
 			status,
 			result.Client,
 			result.Check.Name,
+			status_str,
 		)
 	}
 }
@@ -114,7 +119,7 @@ func NewSensuCollector(url string) *SensuCollector {
 		CheckStatus: prometheus.NewDesc(
 			"sensu_check_status",
 			"Sensu Check Status(1:Up, 0:Down)",
-			[]string{"client", "check_name"},
+			[]string{"client", "check_name","status"},
 			nil,
 		),
 	}

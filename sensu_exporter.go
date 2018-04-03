@@ -8,6 +8,8 @@ import (
 	"crypto/tls"
 	"sync"
 	"time"
+	"golang.org/x/net/proxy"
+	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
@@ -19,6 +21,7 @@ var (
 
 	httpClient = &http.Client{
 		Timeout: 40 * time.Second,
+
 	}
 	listenAddress = flag.String(
 		// exporter port list:
@@ -124,8 +127,27 @@ func NewSensuCollector(url string) *SensuCollector {
 }
 
 func main() {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+
+	socks5_proxy := flag.String("socks5", "", "a string")
+
 	flag.Parse()
+
+	if *socks5_proxy != ""{
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		dialSocksProxy, err := proxy.SOCKS5("tcp", *socks5_proxy, nil, proxy.Direct)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+			os.Exit(1)
+		}
+		tr := &http.Transport{Dial: dialSocksProxy.Dial}
+		httpClient = &http.Client{
+			Timeout: 40 * time.Second,
+			Transport: tr,
+		}
+		tr.Dial = dialSocksProxy.Dial
+	}
+
 	serveMetrics()
 
 }

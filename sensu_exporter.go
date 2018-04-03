@@ -132,9 +132,8 @@ func main() {
 	socks5_proxy := flag.String("socks5", "", "a string")
 
 	flag.Parse()
-
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	if *socks5_proxy != ""{
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		dialSocksProxy, err := proxy.SOCKS5("tcp", *socks5_proxy, nil, proxy.Direct)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)

@@ -146,6 +146,7 @@ func main() {
 			Transport: tr,
 		}
 		tr.Dial = dialSocksProxy.Dial
+		log.Infoln("Using socks5 proxy:", *socks5_proxy)
 	}
 
 	serveMetrics()
